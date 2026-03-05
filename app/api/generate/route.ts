@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import axios from "axios";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 // Exclude irrelevant or binary files to save context window
 const EXCLUDED_EXTS = [
   ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".pdf", ".zip", ".tar", ".gz",
@@ -22,6 +20,7 @@ function isRelevantFile(path: string) {
 
 export async function POST(req: Request) {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const { repoUrl } = await req.json();
 
     if (!repoUrl) {
@@ -51,7 +50,7 @@ export async function POST(req: Request) {
     // 3. Prioritize files to read content
     // We want entry points, configs, and main components
     const priorityKeywords = ["package.json", "tsconfig.json", "next.config.js", "setup.py", "requirements.txt", "main", "index", "App", "app/page", "src/"];
-    
+
     // Sort so files matching priority keywords come first
     relevantFiles.sort((a: string, b: string) => {
       const aScore = priorityKeywords.find(k => a.includes(k)) ? 1 : 0;
@@ -70,10 +69,10 @@ export async function POST(req: Request) {
           const res = await axios.get(rawUrl);
           // Only append if it's text and not huge
           if (typeof res.data === "string" || typeof res.data === "object") {
-             const content = typeof res.data === "object" ? JSON.stringify(res.data) : res.data;
-             if (content.length < 50000) { 
-               codeContext += `\n--- FILE: ${path} ---\n\`\`\`\n${content}\n\`\`\`\n`;
-             }
+            const content = typeof res.data === "object" ? JSON.stringify(res.data) : res.data;
+            if (content.length < 50000) {
+              codeContext += `\n--- FILE: ${path} ---\n\`\`\`\n${content}\n\`\`\`\n`;
+            }
           }
         } catch (e) {
           console.error(`Failed to fetch ${path}`, e);
